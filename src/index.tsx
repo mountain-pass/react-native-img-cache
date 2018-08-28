@@ -103,7 +103,10 @@ export class ImageCache {
             cache.downloading = true;
             const method = source.method ? source.method : "GET";
             cache.task = RNFetchBlob.config({ path }).fetch(method, uri, source.headers);
-            cache.task.then(() => {
+            cache.task.then((res) => {
+                if(res.info().status == 404){
+                    throw new Error("Image not found")
+                }
                 cache.downloading = false;
                 cache.path = path;
                 this.notify(uri);
@@ -111,6 +114,9 @@ export class ImageCache {
                 cache.downloading = false;
                 // Parts of the image may have been downloaded already, (see https://github.com/wkh237/react-native-fetch-blob/issues/331)
                 RNFetchBlob.fs.unlink(path);
+                // need to notify with invalid uri in order for the image progress to pickup the error
+                // which allow us to display error image
+                this.notify(uri)
             });
         }
     }

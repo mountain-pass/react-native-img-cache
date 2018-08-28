@@ -89,6 +89,9 @@ export class ImageCache {
                 cache.downloading = false;
                 // Parts of the image may have been downloaded already, (see https://github.com/wkh237/react-native-fetch-blob/issues/331)
                 RNFetchBlob.fs.unlink(path);
+                // need to notify with invalid uri in order for the image progress to pickup the error
+                // which allow us to display error image
+                this.notify(uri);
             });
         }
     }
