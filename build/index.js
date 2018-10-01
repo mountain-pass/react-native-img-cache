@@ -5,6 +5,7 @@ import RNFetchBlob from 'rn-fetch-blob';
 const SHA1 = require("crypto-js/sha1");
 const s4 = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
 const BASE_DIR = RNFetchBlob.fs.dirs.CacheDir + "/react-native-img-cache";
+const ERROR_IMAGE = BASE_DIR + "/error.jpg";
 const FILE_PREFIX = Platform.OS === "ios" ? "" : "file://";
 export class ImageCache {
     constructor() {
@@ -87,7 +88,7 @@ export class ImageCache {
                 this.notify(uri);
             }).catch(() => {
                 cache.downloading = false;
-                cache.path = null;
+                cache.path = ERROR_IMAGE;
                 // Parts of the image may have been downloaded already, (see https://github.com/wkh237/react-native-fetch-blob/issues/331)
                 RNFetchBlob.fs.unlink(path);
                 // need to notify with invalid uri in order for the image progress to pickup the error
@@ -99,15 +100,22 @@ export class ImageCache {
     get(uri) {
         const cache = this.cache[uri];
         if (cache.path) {
-            // We check here if IOS didn't delete the cache content
-            RNFetchBlob.fs.exists(cache.path).then((exists) => {
-                if (exists) {
-                    this.notify(uri);
-                }
-                else {
-                    this.download(cache);
-                }
-            });
+            if (cache.path == ERROR_IMAGE) {
+                // this is a fake image to allow error image to be loaded.
+                // retry to fetch the image again
+                this.download(cache);
+            }
+            else {
+                // We check here if IOS didn't delete the cache content
+                RNFetchBlob.fs.exists(cache.path).then((exists) => {
+                    if (exists) {
+                        this.notify(uri);
+                    }
+                    else {
+                        this.download(cache);
+                    }
+                });
+            }
         }
         else {
             this.download(cache);
